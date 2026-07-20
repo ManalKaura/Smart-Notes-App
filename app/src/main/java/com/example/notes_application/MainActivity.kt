@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -99,7 +100,10 @@ class MainActivity : ComponentActivity() {
                     Login(navController)
                 }
                 composable ("home"){
-                    Home(navController,notes = notes)
+                    Home(navController,notes = notes,
+                        onDelete = {note ->
+                            notes.remove(note)
+                        })
                 }
                 composable("add"){
                     AddNote(navController,notes = notes)
@@ -256,7 +260,8 @@ fun Login(navController: NavController){
 
 @Composable
 fun Home(navController: NavController,
-         notes: SnapshotStateList<Note>
+         notes: SnapshotStateList<Note>,
+         onDelete: (Note) -> Unit
 ){
     Box(
     ) {
@@ -300,6 +305,19 @@ fun Home(navController: NavController,
                                 text = note.date,
                                 fontSize = 14.sp
                             )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                IconButton(
+                                    onClick = {onDelete(note)}
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Delete Note"
+                                    )
+                                }
+                            }
                         }
                     }
                 }
