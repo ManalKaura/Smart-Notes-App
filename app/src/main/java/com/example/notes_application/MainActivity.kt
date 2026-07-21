@@ -1,5 +1,6 @@
 package com.example.notes_application
 
+import android.R.attr.description
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -92,6 +94,9 @@ class MainActivity : ComponentActivity() {
                     )
                 )
             }
+            var selectedNote by remember {
+                mutableStateOf<Note?>(null)
+            }
             NavHost(
                 navController = navController,
                 startDestination = "login"
@@ -103,10 +108,16 @@ class MainActivity : ComponentActivity() {
                     Home(navController,notes = notes,
                         onDelete = {note ->
                             notes.remove(note)
+                        },
+                        onEdit = {note ->
+                            selectedNote = note
+                            navController.navigate("add")
                         })
                 }
                 composable("add"){
-                    AddNote(navController,notes = notes)
+                    AddNote(navController,notes = notes,selectedNote = selectedNote,onEditComplete = {
+                        selectedNote = null
+                    })
                 }
             }
         }
@@ -261,8 +272,9 @@ fun Login(navController: NavController){
 @Composable
 fun Home(navController: NavController,
          notes: SnapshotStateList<Note>,
-         onDelete: (Note) -> Unit
-){
+         onDelete: (Note) -> Unit,
+         onEdit: (Note) -> Unit
+) {
     Box(
     ) {
         Column(
@@ -309,8 +321,19 @@ fun Home(navController: NavController,
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
                             ) {
+
                                 IconButton(
-                                    onClick = {onDelete(note)}
+                                    onClick = {
+                                        onEdit(note)
+                                    },
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit"
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { onDelete(note) }
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Delete,
@@ -322,31 +345,37 @@ fun Home(navController: NavController,
                     }
                 }
             }
-        }
-        FloatingActionButton(onClick = {
-            navController.navigate("add")
-        },
-            Modifier
-                .align(Alignment.BottomEnd)
-                .padding(horizontal = 16.dp, vertical = 20.dp)){
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Note"
-            )
-        }
+            }
+            FloatingActionButton(
+                onClick = {
+                    navController.navigate("add")
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(horizontal = 16.dp, vertical = 20.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Note"
+                )
+            }
     }
 }
 
+
 @Composable
 fun AddNote(navController: NavController,
-            notes: SnapshotStateList<Note>){
+            notes: SnapshotStateList<Note>,
+            selectedNote: Note?,
+            onEditComplete: () -> Unit){
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope();
-    var title by remember {
-        mutableStateOf("")
+    var title by remember(selectedNote) {
+        mutableStateOf(selectedNote?.title ?: "")
     }
-    var des by remember {
-        mutableStateOf("")
+
+    var des by remember(selectedNote) {
+        mutableStateOf(selectedNote?.description ?: "")
     }
     Scaffold(
         snackbarHost = {
@@ -398,17 +427,27 @@ fun AddNote(navController: NavController,
                             scope.launch {
                                 snackbarHostState.showSnackbar("Description is missing")
                             }
-                        } else {
-                            notes.add(
-                                Note(
-                                    title = title,
-                                    description = des,
-                                    date = "19 July"
+                        }else{
+                            if(selectedNote == null){
+                                notes.add(
+                                    Note(
+                                    title,
+                                    des,
+                                    "21 July"
                                 )
-                            )
-                            title = ""
-                            des = ""
-                            navController.navigate("home")
+                                )
+                            }
+                            else{
+                                val index = notes.indexOf(selectedNote)
+
+                                notes[index] = Note(
+                                    title,
+                                    des,
+                                    "21 July"
+                                )
+                            }
+                            onEditComplete()
+                            navController.popBackStack()
                         }
                     },
                     Modifier.width(150.dp)
