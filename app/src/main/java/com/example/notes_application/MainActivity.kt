@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
@@ -34,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -268,13 +270,47 @@ fun Login(navController: NavController){
         }
     }
 }
-
+ 
 @Composable
 fun Home(navController: NavController,
          notes: SnapshotStateList<Note>,
          onDelete: (Note) -> Unit,
          onEdit: (Note) -> Unit
 ) {
+    var showDeleteDialog by remember {
+        mutableStateOf(false)
+    }
+    var noteToDelete by remember {
+        mutableStateOf<Note?>(null)
+    }
+    if(showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text("Delete Note")
+            },
+            text = {
+                Text("Are you sure you want to delete this note? ")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDelete(noteToDelete!!)
+                    showDeleteDialog = false
+                    noteToDelete = null
+                }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text(("Cancel"))
+                }
+            }
+        )
+    }
+
     Box(
     ) {
         Column(
@@ -333,7 +369,10 @@ fun Home(navController: NavController,
                                     )
                                 }
                                 IconButton(
-                                    onClick = { onDelete(note) }
+                                    onClick = {
+                                        noteToDelete = note
+                                        showDeleteDialog = true
+                                    }
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Delete,
