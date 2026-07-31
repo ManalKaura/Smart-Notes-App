@@ -1,9 +1,9 @@
 package com.example.notes_application
-
 import android.R.attr.description
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,47 +55,22 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat.enableEdgeToEdge
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
+import com.example.notes_application.NotesViewModel
 
-data class Note(
-    val title : String,
-    val description : String,
-    val date : String
-)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
-            val notes = remember {
-                mutableStateListOf(
-                    Note(
-                        title = "Android Notes",
-                        description = "Learn Navigation",
-                        date = "15 July"
-                    ),
-                    Note(
-                        title = "Shopping",
-                        description = "Buy Keyboard",
-                        date = "16 July"
-                    ),
-                    Note(
-                        title = "DSA",
-                        description = "Binary Search",
-                        date = "17 July"
-                    ),
-                    Note(
-                        title = "College",
-                        description = "Submit Assignment",
-                        date = "18 July"
-                    )
-                )
-            }
+            val viewModel: NotesViewModel = viewModel()
             var selectedNote by remember {
                 mutableStateOf<Note?>(null)
             }
@@ -107,9 +82,9 @@ class MainActivity : ComponentActivity() {
                     Login(navController)
                 }
                 composable ("home"){
-                    Home(navController,notes = notes,
+                    Home(navController,notes = viewModel.notes,
                         onDelete = {note ->
-                            notes.remove(note)
+                            viewModel.deleteNote(note)
                         },
                         onEdit = {note ->
                             selectedNote = note
@@ -117,9 +92,12 @@ class MainActivity : ComponentActivity() {
                         })
                 }
                 composable("add"){
-                    AddNote(navController,notes = notes,selectedNote = selectedNote,onEditComplete = {
+                    AddNote(navController,
+                        selectedNote = selectedNote,
+                        onEditComplete = {
                         selectedNote = null
-                    })
+                    },
+                        viewModel = viewModel)
                 }
             }
         }
@@ -404,9 +382,9 @@ fun Home(navController: NavController,
 
 @Composable
 fun AddNote(navController: NavController,
-            notes: SnapshotStateList<Note>,
             selectedNote: Note?,
-            onEditComplete: () -> Unit){
+            onEditComplete: () -> Unit,
+            viewModel: NotesViewModel){
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope();
     var title by remember(selectedNote) {
@@ -468,7 +446,7 @@ fun AddNote(navController: NavController,
                             }
                         }else{
                             if(selectedNote == null){
-                                notes.add(
+                                viewModel.addNote(
                                     Note(
                                     title,
                                     des,
@@ -477,12 +455,13 @@ fun AddNote(navController: NavController,
                                 )
                             }
                             else{
-                                val index = notes.indexOf(selectedNote)
-
-                                notes[index] = Note(
-                                    title,
-                                    des,
-                                    "21 July"
+                                viewModel.updateNote(
+                                    selectedNote!!,
+                                    Note(
+                                        title = title,
+                                        description = des,
+                                        date = "21 July"
+                                    )
                                 )
                             }
                             onEditComplete()
