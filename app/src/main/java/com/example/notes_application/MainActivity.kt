@@ -61,6 +61,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.example.notes_application.NotesViewModel
 
 
