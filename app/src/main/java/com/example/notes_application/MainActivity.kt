@@ -1,4 +1,5 @@
 package com.example.notes_application
+
 import android.R.attr.description
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -61,9 +62,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 import com.example.notes_application.NotesViewModel
+import androidx.room.Room
+import androidx.compose.runtime.collectAsState
+import kotlin.jvm.java
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 class MainActivity : ComponentActivity() {
@@ -71,11 +76,26 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val database = remember {
+                Room.databaseBuilder(
+                    applicationContext,
+                    AppDatabase::class.java,
+                    "notes_database"
+                ).build()
+            }
+            val repository = NoteRepository(
+                database.noteDao()
+            )
+            val factory = NotesViewModelFactory(repository)
             val navController = rememberNavController()
-            val viewModel: NotesViewModel = viewModel()
+            val viewModel: NotesViewModel = viewModel(
+                factory = factory
+            )
+            val notes by viewModel.notes.collectAsState()
             var selectedNote by remember {
                 mutableStateOf<Note?>(null)
             }
+
             NavHost(
                 navController = navController,
                 startDestination = "login"
@@ -84,7 +104,7 @@ class MainActivity : ComponentActivity() {
                     Login(navController)
                 }
                 composable ("home"){
-                    Home(navController,notes = viewModel.notes,
+                    Home(navController,notes = notes,
                         onDelete = {note ->
                             viewModel.deleteNote(note)
                         },
@@ -253,7 +273,7 @@ fun Login(navController: NavController){
  
 @Composable
 fun Home(navController: NavController,
-         notes: SnapshotStateList<Note>,
+         notes: List<Note>,
          onDelete: (Note) -> Unit,
          onEdit: (Note) -> Unit
 ) {
@@ -263,6 +283,7 @@ fun Home(navController: NavController,
     var noteToDelete by remember {
         mutableStateOf<Note?>(null)
     }
+
     if(showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -305,66 +326,82 @@ fun Home(navController: NavController,
                 fontSize = 20.sp
             )
             Spacer(modifier = Modifier.height(20.dp))
-            LazyColumn() {
-                items(notes) { note ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 20.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(
-                                horizontal = 16.dp,
-                                vertical = 20.dp
-                            )
+            if (notes.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No Notes Available",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                LazyColumn() {
+                    items(notes) { note ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 20.dp)
                         ) {
-                            Text(
-                                text = note.title,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            )
-                            Spacer(modifier = Modifier.height(15.dp))
-                            Text(
-                                text = note.description,
-                                fontSize = 14.sp
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(
-                                text = note.date,
-                                fontSize = 14.sp
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
+                            Column(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 20.dp
+                                )
                             ) {
+                                Text(
+                                    text = note.title,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp
+                                )
+                                Spacer(modifier = Modifier.height(15.dp))
+                                Text(
+                                    text = note.description,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = note.date,
+                                    fontSize = 14.sp
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
 
-                                IconButton(
-                                    onClick = {
-                                        onEdit(note)
-                                    },
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit"
-                                    )
-                                }
-                                IconButton(
-                                    onClick = {
-                                        noteToDelete = note
-                                        showDeleteDialog = true
+                                    IconButton(
+                                        onClick = {
+                                            onEdit(note)
+                                        },
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit"
+                                        )
                                     }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Delete,
-                                        contentDescription = "Delete Note"
-                                    )
+                                    IconButton(
+                                        onClick = {
+                                            noteToDelete = note
+                                            showDeleteDialog = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = "Delete Note"
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-            }
+        }
+
             FloatingActionButton(
                 onClick = {
                     navController.navigate("add")
@@ -392,7 +429,10 @@ fun AddNote(navController: NavController,
     var title by remember(selectedNote) {
         mutableStateOf(selectedNote?.title ?: "")
     }
-
+    val currentDate = SimpleDateFormat(
+        "dd MMMM yyyy",
+        Locale.getDefault()
+    ).format(Date())
     var des by remember(selectedNote) {
         mutableStateOf(selectedNote?.description ?: "")
     }
@@ -450,19 +490,19 @@ fun AddNote(navController: NavController,
                             if(selectedNote == null){
                                 viewModel.addNote(
                                     Note(
-                                    title,
-                                    des,
-                                    "21 July"
+                                    title = title,
+                                    description = des,
+                                    date = currentDate
                                 )
                                 )
                             }
                             else{
                                 viewModel.updateNote(
-                                    selectedNote!!,
                                     Note(
+                                        id = selectedNote.id,
                                         title = title,
                                         description = des,
-                                        date = "21 July"
+                                        date = currentDate
                                     )
                                 )
                             }
