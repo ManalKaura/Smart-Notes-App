@@ -3,6 +3,8 @@ package com.example.notes_application
 import android.R.attr.description
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.activity.compose.setContent
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.activity.enableEdgeToEdge
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Visibility
@@ -29,6 +33,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,6 +74,9 @@ import kotlin.jvm.java
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Scaffold
 
 
 class MainActivity : ComponentActivity() {
@@ -270,7 +278,8 @@ fun Login(navController: NavController){
         }
     }
 }
- 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Home(navController: NavController,
          notes: List<Note>,
@@ -282,6 +291,13 @@ fun Home(navController: NavController,
     }
     var noteToDelete by remember {
         mutableStateOf<Note?>(null)
+    }
+    var searchText by remember {
+        mutableStateOf("")
+    }
+    val filteredNotes = notes.filter {
+        it.title.contains(searchText, ignoreCase = true) ||
+                it.description.contains(searchText, ignoreCase = true)
     }
 
     if(showDeleteDialog) {
@@ -312,20 +328,50 @@ fun Home(navController: NavController,
         )
     }
 
-    Box(
-    ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "My Notes",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    navController.navigate("add")
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Note"
+                )
+            }
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 50.dp, horizontal = 5.dp),
-            horizontalAlignment = Alignment.Start,
+                .padding(innerPadding)
+                .padding(vertical = 20.dp, horizontal = 5.dp)
         ) {
-            Text(
-                text = "My Notes",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
             Spacer(modifier = Modifier.height(20.dp))
+            TextField(
+                value = searchText,
+                onValueChange = {
+                    searchText = it
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                placeholder = {
+                    Text("Search notes...")
+                },
+                singleLine = true
+            )
             if (notes.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -341,11 +387,15 @@ fun Home(navController: NavController,
                 }
             } else {
                 LazyColumn() {
-                    items(notes) { note ->
+                    items(filteredNotes) { note ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 20.dp)
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(
+                                defaultElevation = 6.dp
+                            )
                         ) {
                             Column(
                                 modifier = Modifier.padding(
@@ -361,13 +411,27 @@ fun Home(navController: NavController,
                                 Spacer(modifier = Modifier.height(15.dp))
                                 Text(
                                     text = note.description,
-                                    fontSize = 14.sp
+                                    fontSize = 16.sp
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
-                                Text(
-                                    text = note.date,
-                                    fontSize = 14.sp
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = "Date",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+
+                                    Spacer(
+                                        modifier = Modifier.width(6.dp)
+                                    )
+
+                                    Text(
+                                        text = note.date,
+                                        fontSize = 14.sp
+                                    )
+                                }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.End
@@ -401,20 +465,6 @@ fun Home(navController: NavController,
                 }
             }
         }
-
-            FloatingActionButton(
-                onClick = {
-                    navController.navigate("add")
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Note"
-                )
-            }
     }
 }
 
