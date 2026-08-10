@@ -302,27 +302,44 @@ fun Home(navController: NavController,
 
     if(showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
+            onDismissRequest = {
+                showDeleteDialog = false
+            },
             title = {
-                Text("Delete Note")
+                Text(
+                    text = "Delete Note",
+                    fontWeight = FontWeight.Bold
+                )
             },
             text = {
-                Text("Are you sure you want to delete this note? ")
+                Text(
+                    text = "Are you sure you want to delete \"${noteToDelete?.title}\"?"
+                )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    onDelete(noteToDelete!!)
-                    showDeleteDialog = false
-                    noteToDelete = null
-                }) {
-                    Text("Delete")
+                TextButton(
+                    onClick = {
+                        noteToDelete?.let {
+                            onDelete(it)
+                        }
+                        showDeleteDialog = false
+                        noteToDelete = null
+                    }
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = Color.Red
+                    )
                 }
             },
+
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteDialog = false }
+                    onClick = {
+                        showDeleteDialog = false
+                    }
                 ) {
-                    Text(("Cancel"))
+                    Text("Cancel")
                 }
             }
         )
@@ -332,10 +349,20 @@ fun Home(navController: NavController,
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "My Notes",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text(
+                            text = "My Notes",
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "${notes.size} Notes",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+                    }
                 }
             )
         },
