@@ -77,6 +77,7 @@ import java.util.Locale
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Scaffold
+import com.example.notes_application.ui.theme.Notes_ApplicationTheme
 
 
 class MainActivity : ComponentActivity() {
@@ -84,6 +85,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            Notes_ApplicationTheme {
             val database = remember {
                 Room.databaseBuilder(
                     applicationContext,
@@ -132,6 +134,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+        }
 }
 
 @Composable
